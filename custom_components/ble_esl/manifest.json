@@ -36,6 +36,17 @@
     {
       "manufacturer_id": 21080,
       "connectable": true
+    },
+    {
+      "local_name": "ETAG-*",
+      "connectable": true
+    },
+    {
+      "manufacturer_id": 1593,
+      "manufacturer_data_start": [
+        202
+      ],
+      "connectable": true
     }
   ],
   "codeowners": [
@@ -43,7 +54,10 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "bluetooth_adapters"
+    "bluetooth_adapters",
+    "frontend",
+    "panel_custom",
+    "websocket_api"
   ],
   "documentation": "https://github.com/eigger/hass-ble-esl",
   "iot_class": "local_push",
@@ -52,5 +66,5 @@
     "blesession==0.2.0",
     "imagespec[datamatrix]==0.5.0"
   ],
-  "version": "0.13.0"
+  "version": "0.14.0"
 }

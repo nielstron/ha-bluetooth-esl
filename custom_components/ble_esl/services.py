@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from asyncio import Future, Lock
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 import contextlib
 import dataclasses
 from dataclasses import dataclass, field
@@ -237,6 +237,17 @@ async def build_write_job(
     through the same retry/failure path for both services and a debounced
     write never uses a stale handle.
     """
+    return await build_write_job_from_data(hass, entry, service.data)
+
+
+async def build_write_job_from_data(
+    hass: HomeAssistant,
+    entry: BleEslConfigEntry,
+    service_data: Mapping[str, Any],
+    *,
+    image: Image.Image | None = None,
+) -> WriteJob:
+    """Render data supplied by a service or the visual designer."""
     data = entry.runtime_data
     options = {**entry.data, **entry.options}
     protocol = data.protocol
@@ -247,16 +258,17 @@ async def build_write_job(
     data.preset = preset
     data.parser.set_preset(preset)
 
-    image = await hass.async_add_executor_job(
-        partial(
-            render_image,
-            hass,
-            preset,
-            service.data.get("payload", ""),
-            rotate=service.data.get("rotate", 0),
-            background=service.data.get("background", "white"),
+    if image is None:
+        image = await hass.async_add_executor_job(
+            partial(
+                render_image,
+                hass,
+                preset,
+                service_data.get("payload", ""),
+                rotate=service_data.get("rotate", 0),
+                background=service_data.get("background", "white"),
+            )
         )
-    )
     buffer = BytesIO()
     image.save(buffer, "PNG")
     image_png = buffer.getvalue()

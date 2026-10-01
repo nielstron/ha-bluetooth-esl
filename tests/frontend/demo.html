@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>Label designer demo</title
+  ><style>
+    body {
+      margin: 0;
+      font-family: system-ui;
+    }
+    .demo {
+      padding: 8px 24px;
+      background: #e3f2f2;
+      color: #23595d;
+      font-size: 12px;
+    }
+  </style>
+  <div class="demo">
+    Local preview demo · Uses the real renderer · No Bluetooth writes
+  </div>
+  <ble-esl-designer></ble-esl-designer>
+  <script type="module">
+    class DemoEntityPicker extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: "open" });
+        this.search = "";
+      }
+      set hass(value) {
+        this._hass = value;
+        if (this.isConnected) this.render();
+      }
+      set value(value) {
+        this._value = value;
+      }
+      connectedCallback() {
+        if (this._hass) this.render();
+      }
+      render() {
+        this.shadowRoot.innerHTML = `<style>:host{display:block}input{box-sizing:border-box;width:100%;padding:10px;font:inherit;border:1px solid #ccd4dc;border-radius:6px}.options{position:absolute;z-index:1000;width:220px;max-height:260px;overflow:auto;background:white;box-shadow:0 4px 16px #0003;border-radius:6px}.entity{display:block;width:100%;padding:10px;text-align:left;font:inherit;background:white;border:0}.entity small{display:block;font-size:11px;color:#666}</style><input role="combobox" aria-label="Search sensors" placeholder="Sensor" aria-expanded="false"><div class="options" hidden></div>`;
+        const input = this.shadowRoot.querySelector("input"),
+          list = this.shadowRoot.querySelector(".options");
+        input.value = this._value
+          ? this._hass.states[this._value]?.attributes.friendly_name || ""
+          : "";
+        const options = () => {
+          list.hidden = false;
+          input.setAttribute("aria-expanded", "true");
+          list.innerHTML = Object.values(this._hass.states)
+            .filter((state) =>
+              (state.entity_id + " " + state.attributes.friendly_name)
+                .toLowerCase()
+                .includes(input.value.toLowerCase()),
+            )
+            .map(
+              (state) =>
+                `<button class="entity" data-entity="${state.entity_id}" draggable="true">${state.attributes.friendly_name}<small>${state.state} ${state.attributes.unit_of_measurement || ""}</small></button>`,
+            )
+            .join("");
+        };
+        input.addEventListener("input", options);
+        input.addEventListener("focus", options);
+        list.addEventListener("click", (event) => {
+          const row = event.target.closest("[data-entity]");
+          if (row)
+            this.dispatchEvent(
+              new CustomEvent("value-changed", {
+                detail: { value: row.dataset.entity },
+                bubbles: true,
+                composed: true,
+              }),
+            );
+        });
+        list.addEventListener("dragstart", (event) =>
+          event.dataTransfer.setData(
+            "text/plain",
+            event.target.closest("[data-entity]").dataset.entity,
+          ),
+        );
+      }
+    }
+    customElements.define("ha-entity-picker", DemoEntityPicker);
+    await import("/frontend/panel.js");
+    const panel = document.querySelector("ble-esl-designer");
+    const states = await fetch("/states").then((response) => response.json());
+    panel.hass = {
+      states,
+      formatEntityName: (state) => state.attributes.friendly_name,
+      formatEntityState: (state) =>
+        state.state +
+        (state.attributes.unit_of_measurement
+          ? " " + state.attributes.unit_of_measurement
+          : ""),
+      callWS: async (msg) => {
+        const response = await fetch("/api/designer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(msg),
+        });
+        if (!response.ok) throw new Error(await response.text());
+        return response.json();
+      },
+    };
+    window.panel = panel;
+  </script>
+</html>

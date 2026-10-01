@@ -191,3 +191,9 @@ reference/
 # Generated in CI from the installed Home Assistant / manifest.json
 requirements_ha.txt
 requirements.txt
+
+# Frontend development and QA outputs
+node_modules/
+test-results/
+playwright-report/
+artifacts/

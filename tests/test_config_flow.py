@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from bt import inject_bluetooth_service_info, service_info
 from conftest import ADDRESS, IDENT, setup_entry, wolink_service_info
 from homeassistant.config_entries import SOURCE_BLUETOOTH, SOURCE_USER, ConfigEntryState
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 import voluptuous as vol
 
 from custom_components.ble_esl.config_flow import _model_selector_options
@@ -22,6 +25,14 @@ from custom_components.ble_esl.const import (
 from custom_components.ble_esl.esl_ble.easytag.const import SERVICE_UUID as EASYTAG_UUID
 from custom_components.ble_esl.esl_ble.picksmart.const import MANUFACTURER_ID as PICKSMART_ID
 from custom_components.ble_esl.esl_ble.wolink.devices import PRESETS
+
+
+@pytest.fixture(autouse=True)
+def onboarded_home_assistant():
+    """These discovery tests represent an installed, already onboarded HA."""
+    with patch("homeassistant.components.onboarding.async_is_onboarded", return_value=True):
+        yield
+
 
 PICKSMART_ADDRESS = "AA:BB:CC:DD:EE:33"
 POSHIJI_ADDRESS = "AA:BB:CC:DD:EE:42"

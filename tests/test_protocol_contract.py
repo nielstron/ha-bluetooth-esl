@@ -90,6 +90,8 @@ def test_protocol_ids_are_unique_and_matchers_disjoint_on_each_others_samples():
     """Registration order resolves detect(); matchers must not overlap."""
     assert len(IDS) == len(set(IDS))
     samples = {
+        "etag": {"local_name": "ETAG-52500058B6", "manufacturer_data": {}, "service_uuids": []},
+        "minew": {"manufacturer_data": {0x0639: b"\xca\x21"}, "service_uuids": []},
         "wolink": {"manufacturer_data": {0xBBAA: bytes(10)}, "service_uuids": []},
         "easytag": {
             "manufacturer_data": {},
@@ -104,6 +106,6 @@ def test_protocol_ids_are_unique_and_matchers_disjoint_on_each_others_samples():
     assert set(samples) == set(IDS), "add a sample advertisement for every registered protocol"
     for owner, fields in samples.items():
         info = MagicMock(name="x", address="00:11:22:33:44:55", **fields)
-        info.name = "x"
+        info.name = fields.get("local_name", "x")
         claimed = [p.id for p in PROTOCOLS if p.supported(info)]
         assert claimed == [owner], f"{owner} sample claimed by {claimed}"

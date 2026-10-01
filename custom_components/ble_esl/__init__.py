@@ -35,6 +35,7 @@ from .const import (
 )
 from .coordinator import BleEslPassiveBluetoothProcessorCoordinator
 from .data import BleEslRuntimeData
+from .designer import KEY as DESIGNER_KEY, async_setup_designer
 from .device import format_model_name, resolve_preset
 from .services import async_setup_services, cancel_pending_write
 from .storage import ImageStore
@@ -58,6 +59,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up domain-wide state: the BLE write lock and the services."""
     hass.data[DATA_LOCK] = Lock()
     async_setup_services(hass)
+    await async_setup_designer(hass)
     return True
 
 
@@ -189,18 +191,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: BleEslConfigEntry) -> bo
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(bt_coordinator.async_start())
+    hass.data[DESIGNER_KEY].attach(entry)
     return True
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: BleEslConfigEntry) -> None:
     """Delete the entry's stored images along with the entry."""
     await ImageStore(hass, entry.entry_id).async_remove()
+    designer = hass.data[DESIGNER_KEY]
+    designer.detach(entry.entry_id)
+    designer.documents.pop(entry.entry_id, None)
+    await designer.store.async_save(designer.documents)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: BleEslConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
+        hass.data[DESIGNER_KEY].detach(entry.entry_id)
         # Cancels a pending debounce timer and bumps the generation, so a
         # debounced write that already fired but is still queued on the BLE
         # lock is dropped instead of writing to an unloaded entry's tag.
