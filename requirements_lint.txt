@@ -1,3 +1,3 @@
 # Pinned on purpose: ruff.toml enables whole rule families, so a new ruff can
 # add findings. Dependabot proposes bumps; fix the findings in that PR.
-ruff==0.16.9
+ruff==0.16.10
